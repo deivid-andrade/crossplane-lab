@@ -1,0 +1,9 @@
+apiVersion: example.org/v1alpha1
+kind: awsbuildprojectclaim
+metadata:
+  name: my-codebuild-project
+spec:
+  projectName: "my-codebuild-project2025"
+  environmentType: "BUILD_GENERAL1_SMALL"
+  sourceLocation: "https://github.com/my-org/my-repo"
+  serviceRole: "arn:aws:iam::907680593597:role/crossplane-iam-role-my-iamrole-s3-claim-kccgs-shvq8"

@@ -1,0 +1,77 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: awsbuildproject-composition
+  namespace: crossplane-system
+spec:
+  compositeTypeRef:
+    apiVersion: example.org/v1alpha1
+    kind: awsbuildproject
+  resources:
+    - name: codebuild-project
+      base:
+        apiVersion: tf.upbound.io/v1beta1  # Usando v1beta1 aqui
+        kind: Workspace
+        spec:
+          providerConfigRef:
+            name: aws-eu-west-1
+          forProvider:
+            source: Inline
+            vars:
+              - key: "AWS_PROJECT_NAME"
+                value: "my-codebuild-project"  # Usando toString para garantir a conversão correta
+              - key: "AWS_COMPUTE_TYPE"
+                value: "BUILD_GENERAL1_SMALL"
+              - key: "AWS_SOURCE_LOCATION"
+                value: "https://github.com/my-org/my-repo"
+              - key: "AWS_SERVICE_ROLE"
+                value: "arn:aws:iam::907680593597:role/crossplane-iam-role-my-iamrole-s3-claim-kccgs-shvq8"
+            module: |
+              variable "AWS_PROJECT_NAME" {}
+              variable "AWS_COMPUTE_TYPE" {}
+              variable "AWS_SOURCE_LOCATION" {}
+              variable "AWS_SERVICE_ROLE" {}
+
+              resource "aws_codebuild_project" "example" {
+                name          = var.AWS_PROJECT_NAME
+                description   = "My example CodeBuild project"
+                build_timeout = 60
+
+                service_role = var.AWS_SERVICE_ROLE
+
+                environment {
+                  compute_type = var.AWS_COMPUTE_TYPE
+                  image        = "aws/codebuild/standard:5.0"
+                  type         = "LINUX_CONTAINER"
+                }
+
+                source {
+                  type     = "GITHUB"
+                  location = var.AWS_SOURCE_LOCATION
+                }
+
+
+                artifacts {
+                  type = "NO_ARTIFACTS"
+                }
+              }
+          patches:
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.projectName"
+              toFieldPath: "spec.forProvider.vars[0].value"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.environmentType"
+              toFieldPath: "spec.forProvider.vars[1].value"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.sourceLocation"
+              toFieldPath: "spec.forProvider.vars[2].value"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.serviceRole"
+              toFieldPath: "spec.forProvider.vars[3].value"
+
+
+
+
+
+
+

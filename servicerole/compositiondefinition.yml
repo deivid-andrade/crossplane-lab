@@ -1,0 +1,29 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xiamroles.aws.example.org
+spec:
+  group: aws.example.org
+  names:
+    kind: XIARMRole
+    plural: xiamroles
+    singular: xiamrole
+  claimNames:
+    kind: IAMRoleClaim
+    plural: iamroleclaims
+    singular: iamroleclaim
+  versions:
+    - name: "v1alpha1"
+      referenceable: true
+      served: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                roleName:
+                  type: string
+                assumeRolePolicy:
+                  type: string

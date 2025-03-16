@@ -1,0 +1,19 @@
+apiVersion: aws.example.org/v1alpha1
+kind: IAMRoleClaim
+metadata:
+  name: my-iamrole-s3-claim
+spec:
+  roleName: "my-crossplane-role"
+  assumeRolePolicy: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "ec2.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
