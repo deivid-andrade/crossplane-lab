@@ -24,11 +24,26 @@ spec:
             spec:
               type: object
               properties:
+                base_capacity:
+                  type: string
+                compute_fleet_type:
+                  type: string
+                fleet_name:
+                  type: string
+                overflow_behavior:
+                  type: string
+                project_service_role:
+                  type: string
+                max_capacity:
+                  type: string
                 projectName:
                   type: string
-                environmentType:
+                service_role:
                   type: string
-                sourceLocation:
+                compute_type:
                   type: string
-                serviceRole:
+                source_location:
                   type: string
+                enviroment_type:
+                  type: string
+                

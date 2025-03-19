@@ -7,71 +7,182 @@ spec:
   compositeTypeRef:
     apiVersion: example.org/v1alpha1
     kind: awsbuildproject
-  resources:
-    - name: codebuild-project
-      base:
-        apiVersion: tf.upbound.io/v1beta1  # Usando v1beta1 aqui
-        kind: Workspace
-        spec:
-          providerConfigRef:
-            name: aws-eu-west-1
-          forProvider:
-            source: Inline
-            vars:
-              - key: "AWS_PROJECT_NAME"
-                value: "my-codebuild-project"  # Usando toString para garantir a conversão correta
-              - key: "AWS_COMPUTE_TYPE"
-                value: "BUILD_GENERAL1_SMALL"
-              - key: "AWS_SOURCE_LOCATION"
-                value: "https://github.com/my-org/my-repo"
-              - key: "AWS_SERVICE_ROLE"
-                value: "arn:aws:iam::907680593597:role/crossplane-iam-role-my-iamrole-s3-claim-kccgs-shvq8"
-            module: |
-              variable "AWS_PROJECT_NAME" {}
-              variable "AWS_COMPUTE_TYPE" {}
-              variable "AWS_SOURCE_LOCATION" {}
-              variable "AWS_SERVICE_ROLE" {}
+  mode: Pipeline
+  pipeline:
+  - step: patch-and-transform
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      patchSets:
+      - name: variables
+        patches:
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.base_capacity
+            toFieldPath: spec.forProvider.base_capacity
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.compute_fleet_type
+            toFieldPath: spec.forProvider.compute_fleet_type
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.enviroment_type
+            toFieldPath: spec.forProvider.enviroment_type
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.fleet_name
+            toFieldPath: spec.forProvider.fleet_name
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.overflow_behavior
+            toFieldPath: spec.forProvider.overflow_behavior
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.project_service_role
+            toFieldPath: spec.forProvider.project_service_role
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.max_capacity
+            toFieldPath: spec.forProvider.max_capacity
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.projectName
+            toFieldPath: spec.forProvider.projectName
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.service_role
+            toFieldPath: spec.forProvider.service_role
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.compute_type
+            toFieldPath: spec.forProvider.compute_type
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.source_location
+            toFieldPath: spec.forProvider.source_location
+      resources:
+        - name: codebuild-project
+          base:
+            apiVersion: tf.upbound.io/v1beta1
+            kind: Workspace
+            spec:
+              providerConfigRef:
+                name: aws-eu-west-1
+              forProvider:
+                source: Inline
+                module: |
+                  resource "aws_codebuild_fleet" "example" {
+                    base_capacity = var.base_capacity
+                    compute_type = var.compute_fleet_type
+                    environment_type = var.enviroment_type
+                    name = var.fleet_name
+                    overflow_behavior = var.overflow_behavior
+                    fleet_service_role = var.project_service_role
+                    scaling_configuration {
+                      max_capacity = var.max_capacity
+                      scaling_type = "TARGET_TRACKING_SCALING"
+                    }
+                  }
+                  resource "aws_codebuild_project" "example" {
+                    name          = var.projectName
+                    description   = "My example CodeBuild project"
+                    build_timeout = 60
+                    service_role  = var.service_role
 
-              resource "aws_codebuild_project" "example" {
-                name          = var.AWS_PROJECT_NAME
-                description   = "My example CodeBuild project"
-                build_timeout = 60
+                    environment {
+                      compute_type = var.compute_type
+                      image        = "aws/codebuild/standard:5.0"
+                      type         = "LINUX_CONTAINER"
+                    }
 
-                service_role = var.AWS_SERVICE_ROLE
+                    source {
+                      type     = "GITHUB"
+                      location = var.source_location
+                    }
 
-                environment {
-                  compute_type = var.AWS_COMPUTE_TYPE
-                  image        = "aws/codebuild/standard:5.0"
-                  type         = "LINUX_CONTAINER"
-                }
+                    artifacts {
+                      type = "NO_ARTIFACTS"
+                    }
+                  }
 
-                source {
-                  type     = "GITHUB"
-                  location = var.AWS_SOURCE_LOCATION
-                }
-
-
-                artifacts {
-                  type = "NO_ARTIFACTS"
-                }
-              }
+                  variable "projectName" {
+                    description = "Project name"
+                    type        = string
+                  }
+                  variable "compute_type" {
+                    description = "Compute type"
+                    type        = string
+                  }
+                  variable "source_location" {
+                    description = "Source location"
+                    type        = string
+                  }
+                  variable "service_role" {
+                    description = "Service role"
+                    type        = string
+                  }
+                  variable "base_capacity" {
+                    description = "Service role"
+                    type        = string
+                  } 
+                  variable "compute_fleet_type" {
+                    description = "tipo de computação"
+                    type  = string
+                  }
+                  variable "enviroment_type" {
+                    description = "enviroment type"
+                    type = string
+                  }
+                  variable "fleet_name" {
+                    description = "nome do fleet"
+                    type =  string
+                  }
+                  variable "overflow_behavior" {
+                    description = "overflow beahavior"
+                    type = string 
+                  }
+                  variable "project_service_role" {
+                    description = "service role do fleet"
+                    type = string
+                  }
+                  variable "max_capacity" {
+                    description = "capacidade maxima do fleet"
+                    type = string
+                  }
+              # vars:
+              #   - key:  base_capacity
+              #   - key:  compute_fleet_type
+              #   - key:  enviroment_type
+              #   - key:  fleet_name
+              #   - key:  overflow_behavior
+              #   - key:  project_service_role
+              #   - key:  max_capacity
+              #   - key:  projectName
+              #   - key:  service_role
+              #   - key:  compute_type
+              #   - key:  source_location
           patches:
             - type: FromCompositeFieldPath
+              fromFieldPath: "spec.base_capacity"
+              toFieldPath: "spec.forProvider.varmap.base_capacity"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.compute_fleet_type"
+              toFieldPath: "spec.forProvider.varmap.compute_fleet_type"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.enviroment_type"
+              toFieldPath: "spec.forProvider.varmap.enviroment_type"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.fleet_name"
+              toFieldPath: "spec.forProvider.varmap.fleet_name"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.overflow_behavior"
+              toFieldPath: "spec.forProvider.varmap.overflow_behavior"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.project_service_role"
+              toFieldPath: "spec.forProvider.varmap.project_service_role"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.max_capacity"
+              toFieldPath: "spec.forProvider.varmap.max_capacity"
+            - type: FromCompositeFieldPath
               fromFieldPath: "spec.projectName"
-              toFieldPath: "spec.forProvider.vars[0].value"
+              toFieldPath: "spec.forProvider.varmap.projectName"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.environmentType"
-              toFieldPath: "spec.forProvider.vars[1].value"
+              fromFieldPath: "spec.service_role"
+              toFieldPath: "spec.forProvider.varmap.service_role"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.sourceLocation"
-              toFieldPath: "spec.forProvider.vars[2].value"
+              fromFieldPath: "spec.compute_type"
+              toFieldPath: "spec.forProvider.varmap.compute_type"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.serviceRole"
-              toFieldPath: "spec.forProvider.vars[3].value"
-
-
-
-
-
-
-
+              fromFieldPath: "spec.source_location"
+              toFieldPath: "spec.forProvider.varmap.source_location"
