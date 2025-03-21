@@ -46,4 +46,5 @@ spec:
                   type: string
                 enviroment_type:
                   type: string
-                
+                token_github:
+                  type: string

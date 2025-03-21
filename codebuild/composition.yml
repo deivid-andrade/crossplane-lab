@@ -51,6 +51,9 @@ spec:
           - type: FromCompositeFieldPath
             fromFieldPath: spec.source_location
             toFieldPath: spec.forProvider.source_location
+          - type: FromCompositeFieldPath
+            fromFieldPath: spec.token_github
+            toFieldPath: spec.forProvider.token_github
       resources:
         - name: codebuild-project
           base:
@@ -79,11 +82,13 @@ spec:
                     description   = "My example CodeBuild project"
                     build_timeout = 60
                     service_role  = var.service_role
-
                     environment {
                       compute_type = var.compute_type
                       image        = "aws/codebuild/standard:5.0"
                       type         = "LINUX_CONTAINER"
+                      fleet {
+                        fleet_arn   = aws_codebuild_fleet.example.arn
+                      }
                     }
 
                     source {
@@ -93,6 +98,22 @@ spec:
 
                     artifacts {
                       type = "NO_ARTIFACTS"
+                    }
+                  }
+
+                  resource "aws_codebuild_source_credential" "example" {
+                    auth_type = "SECRETS_MANAGER"
+                    server_type = "GITHUB"
+                    token = var.token_github
+                  }
+
+                  resource "aws_codebuild_webhook" "example" {
+                    project_name = aws_codebuild_project.example.name
+                    filter_group {
+                      filter {
+                        pattern = "WORKFLOW_JOB_QUEUED"
+                        type    = "EVENT"
+                      }
                     }
                   }
 
@@ -140,18 +161,10 @@ spec:
                     description = "capacidade maxima do fleet"
                     type = string
                   }
-              # vars:
-              #   - key:  base_capacity
-              #   - key:  compute_fleet_type
-              #   - key:  enviroment_type
-              #   - key:  fleet_name
-              #   - key:  overflow_behavior
-              #   - key:  project_service_role
-              #   - key:  max_capacity
-              #   - key:  projectName
-              #   - key:  service_role
-              #   - key:  compute_type
-              #   - key:  source_location
+                  variable "token_github" {
+                    description = "capacidade maxima do fleet"
+                    type = string
+                  }
           patches:
             - type: FromCompositeFieldPath
               fromFieldPath: "spec.base_capacity"
@@ -186,3 +199,6 @@ spec:
             - type: FromCompositeFieldPath
               fromFieldPath: "spec.source_location"
               toFieldPath: "spec.forProvider.varmap.source_location"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.token_github"
+              toFieldPath: "spec.forProvider.varmap.token_github"
