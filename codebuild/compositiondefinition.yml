@@ -24,27 +24,27 @@ spec:
             spec:
               type: object
               properties:
-                base_capacity:
+                role_arn:
                   type: string
-                compute_fleet_type:
-                  type: string
-                fleet_name:
-                  type: string
-                overflow_behavior:
-                  type: string
-                project_service_role:
-                  type: string
-                max_capacity:
-                  type: string
-                projectName:
-                  type: string
-                service_role:
-                  type: string
-                compute_type:
-                  type: string
-                source_location:
-                  type: string
-                enviroment_type:
-                  type: string
-                token_github:
-                  type: string
+                parameters:
+                  type: object
+                  description: "The parameters for the AWS CodeBuild Project."
+                  properties:
+                    base_capacity:
+                      type: string
+                    compute_fleet_type:
+                      type: string
+                    fleet_name:
+                      type: string
+                    overflow_behavior:
+                      type: string
+                    max_capacity:
+                      type: string
+                    projectName:
+                      type: string
+                    compute_type:
+                      type: string
+                    source_location:
+                      type: string
+                    enviroment_type:
+                      type: string

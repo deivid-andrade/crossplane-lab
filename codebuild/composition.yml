@@ -19,42 +19,108 @@ spec:
       - name: variables
         patches:
           - type: FromCompositeFieldPath
-            fromFieldPath: spec.base_capacity
+            fromFieldPath: spec.parameters.base_capacity
             toFieldPath: spec.forProvider.base_capacity
           - type: FromCompositeFieldPath
-            fromFieldPath: spec.compute_fleet_type
+            fromFieldPath: spec.parameters.compute_fleet_type
             toFieldPath: spec.forProvider.compute_fleet_type
           - type: FromCompositeFieldPath
-            fromFieldPath: spec.enviroment_type
+            fromFieldPath: spec.parameters.enviroment_type
             toFieldPath: spec.forProvider.enviroment_type
           - type: FromCompositeFieldPath
-            fromFieldPath: spec.fleet_name
+            fromFieldPath: spec.parameters.fleet_name
             toFieldPath: spec.forProvider.fleet_name
           - type: FromCompositeFieldPath
-            fromFieldPath: spec.overflow_behavior
+            fromFieldPath: spec.parameters.overflow_behavior
             toFieldPath: spec.forProvider.overflow_behavior
           - type: FromCompositeFieldPath
-            fromFieldPath: spec.project_service_role
-            toFieldPath: spec.forProvider.project_service_role
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.max_capacity
+            fromFieldPath: spec.parameters.max_capacity
             toFieldPath: spec.forProvider.max_capacity
           - type: FromCompositeFieldPath
-            fromFieldPath: spec.projectName
+            fromFieldPath: spec.parameters.projectName
             toFieldPath: spec.forProvider.projectName
           - type: FromCompositeFieldPath
-            fromFieldPath: spec.service_role
-            toFieldPath: spec.forProvider.service_role
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.compute_type
+            fromFieldPath: spec.parameters.compute_type
             toFieldPath: spec.forProvider.compute_type
           - type: FromCompositeFieldPath
-            fromFieldPath: spec.source_location
+            fromFieldPath: spec.parameters.source_location
             toFieldPath: spec.forProvider.source_location
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.token_github
-            toFieldPath: spec.forProvider.token_github
       resources:
+        - name: github-secret
+          base:
+            apiVersion: secretsmanager.aws.upbound.io/v1beta1
+            kind: Secret
+            metadata:
+              name: example-secret
+            spec:
+              forProvider:
+                name: example-secret
+                recoveryWindowInDays: 0
+                region: us-east-1
+              providerConfigRef:
+                name: aws-eu-west-2-aws-codebuild
+
+        - name: iam-role
+          base:
+            apiVersion: iam.aws.upbound.io/v1beta1
+            kind: Role
+            metadata:
+              annotations:
+                meta.upbound.io/example-id: iam/v1beta1/role
+              labels:
+                testing.upbound.io/example-name: role
+              name: role-with-inline-policy
+            spec:
+              forProvider:
+                assumeRolePolicy: |
+                  {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Principal": {
+                          "Service": "codebuild.amazonaws.com"
+                        },
+                        "Action": "sts:AssumeRole"
+                      }
+                    ]
+                  }
+                inlinePolicy:
+                  - name: example-policy
+                    policy: |
+                      {
+                        "Version": "2012-10-17",
+                        "Statement": [
+                          {
+                            "Effect": "Allow",
+                            "Action": ["s3:*"],
+                            "Resource": "*"
+                          },
+                          {
+                            "Effect": "Allow",
+                            "Action": ["logs:*"],
+                            "Resource": "*"
+                          },
+                          {
+                            "Effect": "Allow",
+                            "Action": ["ecr:*"],
+                            "Resource": "*"
+                          },
+                          {
+                            "Effect": "Allow",
+                            "Action": ["secretsmanager:GetSecretValue"],
+                            "Resource": "*"
+                          },
+                          {
+                            "Effect": "Allow",
+                            "Action": ["codebuild:*"],
+                            "Resource": "*"
+                          }
+                        ]
+                      }
+              providerConfigRef:
+                name: aws-eu-west-2-aws-codebuild
+
         - name: codebuild-project
           base:
             apiVersion: tf.upbound.io/v1beta1
@@ -71,7 +137,7 @@ spec:
                     environment_type = var.enviroment_type
                     name = var.fleet_name
                     overflow_behavior = var.overflow_behavior
-                    fleet_service_role = var.project_service_role
+                    fleet_service_role = var.role_arn
                     scaling_configuration {
                       max_capacity = var.max_capacity
                       scaling_type = "TARGET_TRACKING_SCALING"
@@ -81,7 +147,7 @@ spec:
                     name          = var.projectName
                     description   = "My example CodeBuild project"
                     build_timeout = 60
-                    service_role  = var.service_role
+                    service_role  = var.role_arn
                     environment {
                       compute_type = var.compute_type
                       image        = "aws/codebuild/standard:5.0"
@@ -104,7 +170,7 @@ spec:
                   resource "aws_codebuild_source_credential" "example" {
                     auth_type = "SECRETS_MANAGER"
                     server_type = "GITHUB"
-                    token = var.token_github
+                    token = aws_secretsmanager_secret.example.secret_string
                   }
 
                   resource "aws_codebuild_webhook" "example" {
@@ -129,10 +195,6 @@ spec:
                     description = "Source location"
                     type        = string
                   }
-                  variable "service_role" {
-                    description = "Service role"
-                    type        = string
-                  }
                   variable "base_capacity" {
                     description = "Service role"
                     type        = string
@@ -153,52 +215,44 @@ spec:
                     description = "overflow beahavior"
                     type = string 
                   }
-                  variable "project_service_role" {
-                    description = "service role do fleet"
-                    type = string
-                  }
                   variable "max_capacity" {
                     description = "capacidade maxima do fleet"
                     type = string
                   }
-                  variable "token_github" {
-                    description = "capacidade maxima do fleet"
+                  variable "role_arn" {
+                    description = "role arn"
                     type = string
                   }
           patches:
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.base_capacity"
+              fromFieldPath: "spec.parameters.base_capacity"
               toFieldPath: "spec.forProvider.varmap.base_capacity"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.compute_fleet_type"
+              fromFieldPath: "spec.parameters.compute_fleet_type"
               toFieldPath: "spec.forProvider.varmap.compute_fleet_type"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.enviroment_type"
+              fromFieldPath: "spec.parameters.enviroment_type"
               toFieldPath: "spec.forProvider.varmap.enviroment_type"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.fleet_name"
+              fromFieldPath: "spec.parameters.fleet_name"
               toFieldPath: "spec.forProvider.varmap.fleet_name"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.overflow_behavior"
+              fromFieldPath: "spec.parameters.overflow_behavior"
               toFieldPath: "spec.forProvider.varmap.overflow_behavior"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.project_service_role"
-              toFieldPath: "spec.forProvider.varmap.project_service_role"
-            - type: FromCompositeFieldPath
-              fromFieldPath: "spec.max_capacity"
+              fromFieldPath: "spec.parameters.max_capacity"
               toFieldPath: "spec.forProvider.varmap.max_capacity"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.projectName"
+              fromFieldPath: "spec.parameters.projectName"
               toFieldPath: "spec.forProvider.varmap.projectName"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.service_role"
-              toFieldPath: "spec.forProvider.varmap.service_role"
-            - type: FromCompositeFieldPath
-              fromFieldPath: "spec.compute_type"
+              fromFieldPath: "spec.parameters.compute_type"
               toFieldPath: "spec.forProvider.varmap.compute_type"
             - type: FromCompositeFieldPath
-              fromFieldPath: "spec.source_location"
+              fromFieldPath: "spec.parameters.source_location"
               toFieldPath: "spec.forProvider.varmap.source_location"
-            - type: FromCompositeFieldPath
-              fromFieldPath: "spec.token_github"
-              toFieldPath: "spec.forProvider.varmap.token_github"
+            - type: FromFieldPath
+              fromFieldPath: "status.atProvider.arn"
+              toFieldPath: "spec.forProvider.varmap.role_arn"
+              policy:
+                fromFieldPath: Required
