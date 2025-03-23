@@ -9,6 +9,17 @@ spec:
     kind: awsbuildproject
   mode: Pipeline
   pipeline:
+  - step: enviromentConfigs
+    functionRef:
+      name: function-environment-configs
+    input:
+      apiVersion: environment.fn.crossplane.io/v1beta1
+      kind: Input
+      spec:
+        environmentConfigs:
+          - type: Reference
+            ref:
+              name: example-environment
   - step: patch-and-transform
     functionRef:
       name: function-patch-and-transform
@@ -16,35 +27,7 @@ spec:
       apiVersion: pt.fn.crossplane.io/v1beta1
       kind: Resources
       patchSets:
-      - name: variables
-        patches:
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.parameters.base_capacity
-            toFieldPath: spec.forProvider.base_capacity
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.parameters.compute_fleet_type
-            toFieldPath: spec.forProvider.compute_fleet_type
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.parameters.enviroment_type
-            toFieldPath: spec.forProvider.enviroment_type
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.parameters.fleet_name
-            toFieldPath: spec.forProvider.fleet_name
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.parameters.overflow_behavior
-            toFieldPath: spec.forProvider.overflow_behavior
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.parameters.max_capacity
-            toFieldPath: spec.forProvider.max_capacity
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.parameters.projectName
-            toFieldPath: spec.forProvider.projectName
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.parameters.compute_type
-            toFieldPath: spec.forProvider.compute_type
-          - type: FromCompositeFieldPath
-            fromFieldPath: spec.parameters.source_location
-            toFieldPath: spec.forProvider.source_location
+      
       resources:
         - name: github-secret
           base:
@@ -65,10 +48,6 @@ spec:
             apiVersion: iam.aws.upbound.io/v1beta1
             kind: Role
             metadata:
-              annotations:
-                meta.upbound.io/example-id: iam/v1beta1/role
-              labels:
-                testing.upbound.io/example-name: role
               name: role-with-inline-policy
             spec:
               forProvider:
@@ -117,7 +96,7 @@ spec:
                             "Resource": "*"
                           }
                         ]
-                      }
+                      }          
               providerConfigRef:
                 name: aws-eu-west-2-aws-codebuild
 
@@ -170,7 +149,7 @@ spec:
                   resource "aws_codebuild_source_credential" "example" {
                     auth_type = "SECRETS_MANAGER"
                     server_type = "GITHUB"
-                    token = aws_secretsmanager_secret.example.secret_string
+                    token = var.github_token
                   }
 
                   resource "aws_codebuild_webhook" "example" {
@@ -224,6 +203,8 @@ spec:
                     type = string
                   }
           patches:
+            - fromFieldPath: "status.atProvider.arn"
+              toFieldPath: "spec.forProvider.varmap.role_arn"
             - type: FromCompositeFieldPath
               fromFieldPath: "spec.parameters.base_capacity"
               toFieldPath: "spec.forProvider.varmap.base_capacity"
@@ -251,8 +232,4 @@ spec:
             - type: FromCompositeFieldPath
               fromFieldPath: "spec.parameters.source_location"
               toFieldPath: "spec.forProvider.varmap.source_location"
-            - type: FromFieldPath
-              fromFieldPath: "status.atProvider.arn"
-              toFieldPath: "spec.forProvider.varmap.role_arn"
-              policy:
-                fromFieldPath: Required
+

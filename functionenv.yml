@@ -1,0 +1,12 @@
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: example-environment
+data:
+  providerConfigRef:
+    - name: aws-eu-west-2-aws-codebuild
+    - name: aws-eu-west-1
+  resources:
+    - apiVersion: iam.aws.upbound.io/v1beta1
+      kind: Role
+      name: role-with-inline-policy

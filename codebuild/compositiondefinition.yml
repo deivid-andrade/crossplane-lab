@@ -48,3 +48,8 @@ spec:
                       type: string
                     enviroment_type:
                       type: string
+            status:
+              description: "Status of the AWS CodeBuild Project."
+              properties:
+                iam_role_arn:
+                  type: string

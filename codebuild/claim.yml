@@ -7,7 +7,7 @@ spec:
     base_capacity: "1"
     compute_fleet_type: "BUILD_GENERAL1_SMALL"
     enviroment_type: "LINUX_CONTAINER"
-    fleet_name: "teste_deivid122411199114622233"
+    fleet_name: "teste_deivid1224111991146222332222222222"
     overflow_behavior: "QUEUE"
     max_capacity: "2"
     projectName: "teste-codebuild"

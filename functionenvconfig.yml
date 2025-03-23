@@ -1,0 +1,7 @@
+apiVersion: environment.crossplane.io/v1alpha1
+kind: Environment
+metadata:
+  name: example-environment
+spec:
+  configs:
+    - name: example-environment
