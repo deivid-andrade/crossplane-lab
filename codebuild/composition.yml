@@ -27,7 +27,11 @@ spec:
       apiVersion: pt.fn.crossplane.io/v1beta1
       kind: Resources
       patchSets:
-      
+        - name: iam_role_arn
+          patches:
+            - type: FromCompositeFieldPath
+              fromFieldPath: status.atProvider.arn
+              toFieldPath: status.iam.iam_role_arn
       resources:
         - name: github-secret
           base:
@@ -99,6 +103,12 @@ spec:
                       }          
               providerConfigRef:
                 name: aws-eu-west-2-aws-codebuild
+        - name: iam_role_arn
+          patches:
+            - patchSetName: iam_role_arn
+              type: PatchSet
+              fromFieldPath: "status.atProvider.arn"
+              toFieldPath: "status.iam.iam_role_arn"
 
         - name: codebuild-project
           base:
@@ -203,7 +213,7 @@ spec:
                     type = string
                   }
           patches:
-            - fromFieldPath: "status.atProvider.arn"
+            - fromFieldPath: "status.iam.iam_role_arn"
               toFieldPath: "spec.forProvider.varmap.role_arn"
             - type: FromCompositeFieldPath
               fromFieldPath: "spec.parameters.base_capacity"
@@ -232,4 +242,8 @@ spec:
             - type: FromCompositeFieldPath
               fromFieldPath: "spec.parameters.source_location"
               toFieldPath: "spec.forProvider.varmap.source_location"
+            
+
+            
+
 
