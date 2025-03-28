@@ -20,33 +20,20 @@ spec:
           - type: Reference
             ref:
               name: example-environment
-  - step: patch-and-transform
+  - step: create iam-role
     functionRef:
       name: function-patch-and-transform
     input:
       apiVersion: pt.fn.crossplane.io/v1beta1
       kind: Resources
+      ## Pega o valor do arn do iam role e coloca no campo iam_role_arn
       patchSets:
-        - name: iam_role_arn
+        - name: my-patchset
           patches:
-            - type: FromCompositeFieldPath
-              fromFieldPath: status.atProvider.arn
-              toFieldPath: status.iam.iam_role_arn
+            - type: ToCompositeFieldPath
+              fromFieldPath: "status.atProvider.arn"
+              toFieldPath: "status.iam_role_arn"
       resources:
-        - name: github-secret
-          base:
-            apiVersion: secretsmanager.aws.upbound.io/v1beta1
-            kind: Secret
-            metadata:
-              name: example-secret
-            spec:
-              forProvider:
-                name: example-secret
-                recoveryWindowInDays: 0
-                region: us-east-1
-              providerConfigRef:
-                name: aws-eu-west-2-aws-codebuild
-
         - name: iam-role
           base:
             apiVersion: iam.aws.upbound.io/v1beta1
@@ -98,18 +85,59 @@ spec:
                             "Effect": "Allow",
                             "Action": ["codebuild:*"],
                             "Resource": "*"
+                          },
+                          {
+                            "Effect": "Allow",
+                            "Action": ["codestar-connections:*"],
+                            "Resource": "*"
                           }
                         ]
                       }          
               providerConfigRef:
                 name: aws-eu-west-2-aws-codebuild
-        - name: iam_role_arn
+          ##Seta o Patch para ser usado na composition
           patches:
-            - patchSetName: iam_role_arn
-              type: PatchSet
-              fromFieldPath: "status.atProvider.arn"
-              toFieldPath: "status.iam.iam_role_arn"
+            - type: PatchSet
+              patchSetName: my-patchset
 
+  - step: create codestart connection
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      patchSets:
+        - name: arn-github
+          patches:
+            - type: ToCompositeFieldPath
+              fromFieldPath: "status.atProvider.arn"
+              toFieldPath: "status.codestar_connection_arn"
+      resources:
+        - name: codestar-connection
+          base:
+            apiVersion: codestarconnections.aws.upbound.io/v1beta1
+            kind: Connection
+            metadata:
+              name: github-connection
+            spec:
+              forProvider:
+                name: github-connection
+                providerType: GitHub
+                region: us-east-1
+              providerConfigRef:
+                name: aws-eu-west-2-aws-codebuild
+          patches:
+            - type: PatchSet
+              patchSetName: arn-github
+        
+                
+  - step: create codebuild-project
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
         - name: codebuild-project
           base:
             apiVersion: tf.upbound.io/v1beta1
@@ -157,10 +185,11 @@ spec:
                   }
 
                   resource "aws_codebuild_source_credential" "example" {
-                    auth_type = "SECRETS_MANAGER"
+                    auth_type = "CODECONNECTIONS"
                     server_type = "GITHUB"
                     token = var.github_token
                   }
+
 
                   resource "aws_codebuild_webhook" "example" {
                     project_name = aws_codebuild_project.example.name
@@ -212,9 +241,18 @@ spec:
                     description = "role arn"
                     type = string
                   }
+                  variable "github_token" {
+                    description = "github token"
+                    type = string
+                  }
           patches:
-            - fromFieldPath: "status.iam.iam_role_arn"
+              # pega o valor do arn declarado no patch anterior e coloca no campo role_arn
+            - type: FromCompositeFieldPath
+              fromFieldPath: "status.iam_role_arn"
               toFieldPath: "spec.forProvider.varmap.role_arn"
+            - type: FromCompositeFieldPath
+              fromFieldPath: "status.codestar_connection_arn"
+              toFieldPath: "spec.forProvider.varmap.github_token"
             - type: FromCompositeFieldPath
               fromFieldPath: "spec.parameters.base_capacity"
               toFieldPath: "spec.forProvider.varmap.base_capacity"

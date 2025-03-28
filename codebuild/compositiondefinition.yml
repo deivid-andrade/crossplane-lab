@@ -48,8 +48,13 @@ spec:
                       type: string
                     enviroment_type:
                       type: string
+                    github_token:
+                      type: string
             status:
+              type: object
               description: "Status of the AWS CodeBuild Project."
               properties:
                 iam_role_arn:
+                  type: string
+                codestar_connection_arn:
                   type: string
