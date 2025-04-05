@@ -39,7 +39,7 @@ spec:
             apiVersion: iam.aws.upbound.io/v1beta1
             kind: Role
             metadata:
-              name: role-with-inline-policy
+              name: codebuild-role
             spec:
               forProvider:
                 assumeRolePolicy: |
@@ -100,7 +100,7 @@ spec:
             - type: PatchSet
               patchSetName: my-patchset
 
-  - step: create codestart connection
+  - step: create secret manager
     functionRef:
       name: function-patch-and-transform
     input:
@@ -113,22 +113,87 @@ spec:
               fromFieldPath: "status.atProvider.arn"
               toFieldPath: "status.codestar_connection_arn"
       resources:
-        - name: codestar-connection
+        - name: secret-manager
           base:
-            apiVersion: codestarconnections.aws.upbound.io/v1beta1
-            kind: Connection
+            apiVersion: secretsmanager.aws.upbound.io/v1beta1
+            kind: Secret
             metadata:
-              name: github-connection
+              name: github-token-secret
+              labels:
+                secret-id: example-secret
             spec:
               forProvider:
-                name: github-connection
-                providerType: GitHub
                 region: us-east-1
+                name: teste-codebuild
+                recoveryWindowInDays: 0
               providerConfigRef:
                 name: aws-eu-west-2-aws-codebuild
           patches:
             - type: PatchSet
               patchSetName: arn-github
+
+  - step: pega o valor do secret dentro do kubernetes
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+        - name: secret-Version
+          base:
+            apiVersion: secretsmanager.aws.upbound.io/v1beta1
+            kind: SecretVersion
+            metadata:
+              name: github-token-secret
+            spec:
+              forProvider:
+                region: us-east-1
+                secretIdSelector:
+                  matchControllerRef: true
+                  matchLabels:
+                    secret-id: example-secret
+                secretStringSecretRef:
+                  key: secret-data
+                  name: github-oauth-secret
+                  namespace: default
+              providerConfigRef:
+                name: aws-eu-west-2-aws-codebuild
+
+
+  # - step: create codestart connection
+  #   functionRef:
+  #     name: function-patch-and-transform
+  #   input:
+  #     apiVersion: pt.fn.crossplane.io/v1beta1
+  #     kind: Resources
+  #     patchSets:
+  #       - name: arn-github
+  #         patches:
+  #           - type: ToCompositeFieldPath
+  #             fromFieldPath: "status.atProvider.arn"
+  #             toFieldPath: "status.codestar_connection_arn"
+  #     resources:
+  #       - name: codestar-connection
+  #         base:
+  #           apiVersion: codestarconnections.aws.upbound.io/v1beta1
+  #           kind: Connection
+  #           metadata:
+  #             name: github-connection
+  #           spec:
+  #             forProvider:
+  #               name: github-connection
+  #               providerType: GitHub
+  #               region: us-east-1
+  #             publishConnectionDetailsTo:
+  #               configRef:
+  #                 name: github-oauth-secret
+  #               name: github-oauth-secret
+  #             providerConfigRef:
+  #               name: aws-eu-west-2-aws-codebuild
+
+  #         patches:
+  #           - type: PatchSet
+  #             patchSetName: arn-github
         
                 
   - step: create codebuild-project
@@ -185,7 +250,7 @@ spec:
                   }
 
                   resource "aws_codebuild_source_credential" "example" {
-                    auth_type = "CODECONNECTIONS"
+                    auth_type = "SECRETS_MANAGER"
                     server_type = "GITHUB"
                     token = var.github_token
                   }

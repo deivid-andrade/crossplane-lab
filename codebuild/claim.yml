@@ -7,10 +7,10 @@ spec:
     base_capacity: "1"
     compute_fleet_type: "BUILD_GENERAL1_SMALL"
     enviroment_type: "LINUX_CONTAINER"
-    fleet_name: "teste_deivid122411199114622233222222222222111"
+    fleet_name: "teste_deivid1224111991146222332111122222aaaaaaaaaa2222221112222222222222"
     overflow_behavior: "QUEUE"
     max_capacity: "2"
     projectName: "teste-codebuild"
     compute_type: "BUILD_GENERAL1_SMALL"
     source_location: "https://github.com/deivid-andrade/ansible-jfrog-remote"
-
+    # github_token: 9d34342758ea71c18505fcafec19450590e42ed5
